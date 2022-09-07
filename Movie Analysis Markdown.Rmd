@@ -1,0 +1,144 @@
+---
+title: "Movie Analysis Markdown"
+author: "Nderitu"
+date: '2022-09-06'
+output: 
+  html_document: 
+    toc: yes
+---
+# ***Movies***
+In this project we shall make a deeper dive into movie data, belonging to movies of all genres released between 2012 and 2016. The dataset is already cleaned and therefore the data cleaning process will be skipped. We shall be trying to find trends and patterns throughout the years. Lets get into it.
+
+```{r}
+#The first step is to load the packages that will be used.
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(readxl)
+library(lubridate)
+#Then load the data which is in .xlsx format and preview it.
+movie_data <- read_excel("C:\\Users\\Joseph\\Downloads\\Movie-Data-Starter-Project.xlsx")
+```
+
+```{r}
+#Lets select the columns of data that we need and put them in another dataframe
+movie_data_1 <- select(movie_data, 
+                       Movie_Title = "Movie Title",
+                       Release_Date = "Release Date",
+                       Genre = "Genre (1)",
+                       Budget = "Budget ($)",
+                       Revenue = "Box Office Revenue ($)")
+#To make the analysis of these movies by year, it is important to separate the date column into month and year. The mutate function becomes useful here
+movie_data_1 <- mutate(movie_data_1, 
+                       Month = month(Release_Date, label = TRUE),
+                      Year = year(Release_Date))
+#We can also include a column for profitability which will be calculated by getting difference between revenue and budget
+movie_data_1 <- mutate(movie_data_1,
+                      Total_Profit = (Revenue - Budget))
+#We shall also include the cost revenue ratio
+movie_data_1 <- mutate(movie_data_1,
+                      Cost_Revenue_Ratio = (Budget / Revenue) *100)
+head(movie_data_1)
+```
+
+## *Genre numbers over the years*
+In this section, we shall find out the numbers of the different genres of movies over the years. The `group_by` function will be useful here.
+```{r}
+#We shall get a summary of the number of movies of each genre each year.(grouped by the genre and year)
+viz_1 <- summarise(group_by(movie_data_1,
+                   Genre, Year),
+         number_of_movies = n())
+#We shall then create different vizualizations to show this numbers
+ggplot(data = viz_1, 
+      aes(x = Genre, y = number_of_movies)) +
+geom_col(aes(fill = Year)) +
+facet_wrap(~Year) +
+theme(axis.text.x = element_text(angle = 90)) +
+coord_flip() +
+labs(title = "Number of Movies of the different genres grouped by year",
+    caption = "Data obtained from the movies dataset")
+```
+
+### *Conclusion 1*
+From the visualization above, we can observe that the the action genre has had the most number of movies of its kind made. The only exception of this observation was in the year 2015 where the drama genre had the highest number. Documentaries were the least produced over the years.
+
+## *Genre with the highest yearly profit*
+In the previous section we have observed that the action genre had the highest number of movies every year. In this section, we shall try to establish whether, the high production was due to the fact that they made higher profit. We shall group by the average of profits and average cost revenue ratio. The cost revenue ratio is a measure of efficiency that compares a business activity's expenses to its earnings [Click the link for more description](https://www.indeed.com/career-advice/career-development/cost-revenue-ratio#:~:text=What%20is%20a%20cost%20revenue,including%20marketing%20and%20shipping%20costs.).
+```{r}
+#We shall get a summary of the profits of each genre each year.(grouped by the genre and year)
+viz_2 <- summarise(group_by(movie_data_1,
+                   Genre, Year),
+                     Average_Profits = mean(Total_Profit),
+                  Average_Cost_Revenue_ratio = mean(Cost_Revenue_Ratio))
+#We shall then create different visualizations to show this numbers
+ggplot(data = viz_2, 
+      aes(x = Genre, y = Average_Cost_Revenue_ratio)) +
+geom_col(aes(fill = Year)) +
+facet_wrap(~Year) +
+theme(axis.text.x = element_text(angle = 90)) +
+coord_flip() +
+labs(title = "Mean Cost Revenue Ratio for the genres grouped by year",
+    caption = "Data obtained from the movies dataset")
+#Summary statistics
+viz_3 <- summarise(group_by(viz_2,
+                  Genre),
+         mean_crr = mean(Average_Cost_Revenue_ratio))
+#visualise the summary statistics
+ggplot(data = viz_3, aes(x = Genre, y = mean_crr)) +
+geom_col(aes(fill = Genre)) +
+theme(axis.text.x = element_text(angle = 90)) +
+labs(title = "Mean Cost Revenue Ratio for the genres from 2012 to 2015",
+    caption = "Data obtained from the movies dataset")
+```
+
+### *Conclusion 2*
+The numbers are indeed supportive of the hypothesis. Movies from the action genre are generally profitable, because they have a low cost revenue ratio. This can be supported by summary statistics. 
+​
+**explaining the metrics**
+​
+If the CRR of a genre is 100% then for every 100 dollars that they spent making the movie, they got 100 dollars back in revenue. If a genre's CRR is above 100%, say 150%, it means that for every 150 dollars they spent in making the movie, they got 100 dollars back in revenue. Therefore looking at the numbers, the biography, family and musical genres were not profitable. The action movies were not preferred because of a low CRR because they did not have the lowest CRR. Te genre that was the most profitable using the CRR metric was the Documentary Genre.
+
+## *What time of the year is more profitable to release a movie?*
+In this final section, we shall explore which month of the year is most profitable to release a movie. We shall group the movie data by month and year, then provide a summary statistic of the average profit per month.
+```{r}
+viz_4 <- summarise(group_by(movie_data_1,
+                           Month,
+                           Year),
+                  Average_Monthly_Profit = mean(Total_Profit))
+#Make a simple visualization to shpw the average profit per month for each year.
+ggplot(data = viz_4, aes(x = Month, y = Average_Monthly_Profit)) +
+geom_col(aes(fill = Month)) +
+facet_wrap(~Year) +
+coord_flip() +
+theme(axis.text.x = element_text(angle = 90)) +
+labs(title = "Average Monthly profit for all the movies from 2012 to 2015",
+    caption = "Data obtained from the movies dataset")
+```
+
+### *Conclusion 3*
+From the visualization above, we can see that the average monthly profit was highest between the months of May and August for all the years. This is probably attributed to the fact that that is the time of the year where summer occurs. Most people therefore have the opportunity to visit theatres to watch movies.
+
+# ***Recommendation***
+The analysis above has established the following from the data.
+
+1. The Action genre had the highest number of movies produced across the five years.
+
+2. That the high production of Action movies was not attributed to the fact that they were the most profitable. In fact, the documentary genre had the highest profitability using the Cost Revenue Ration metric.
+
+3. The movies released in the months of May, June, July and August saw the highest average profits across the year.
+
+From the three facts above, I would recommend to any company aspiring to produce movies in 2017 to:
+
+1. Produce and release a movie of the Documentary genre because they would the most revenue from every 100 dollars they spend on production of the movie.
+
+2. Release the movie to theatres and across streaming platforms either in the month of May, June, July or August as they are likely to obtain more viewership hence more revenues.
+
+# ***Limitations***
+Any analysis is not without flaw. In the course of this analysis, I was not able to establish why actions movies were the most produced across the years, despite them not being the most profitable. Perhaps this was attributed to popularity and not profitability. However, there was insufficience of data therefore the popularity aspect of the action genre could not be explored. Data regarding ratings of the different genre of movies could have accurately established this fact, but it was not available. 
+
+```{r}
+#Session Info
+sessionInfo()
+```
+
